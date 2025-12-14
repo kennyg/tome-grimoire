@@ -1,21 +1,23 @@
 ---
 name: skill-apropos
-description: Find the right skill for a task. Use when user asks "what skill should I use", "is there a skill for X", "which skill handles Y", "find me a skill", or when unsure which skill to invoke. Searches installed skills by keyword.
+description: Find the right artifact (skill, command, etc.) for a task. Use when user asks "what should I use for X", "is there a skill/command for Y", "find me something for Z", or when unsure which artifact to invoke. Searches all installed artifacts by keyword.
 ---
 
-# Skill Discovery
+# Artifact Discovery
 
-Search installed skills to find the right one for a task.
+Search installed artifacts (skills, commands, etc.) to find the right one for a task.
 
-## Search Skills
+## Search
 
 ```bash
 python ~/.claude/skills/skill-apropos/scripts/search_skills.py <query>
 ```
 
-Example:
+Examples:
 ```bash
 python ~/.claude/skills/skill-apropos/scripts/search_skills.py "edit pdf"
+python ~/.claude/skills/skill-apropos/scripts/search_skills.py "community health"
+python ~/.claude/skills/skill-apropos/scripts/search_skills.py --type skill spreadsheet
 ```
 
 Output:
@@ -24,28 +26,24 @@ Output:
   "query": "edit pdf",
   "count": 2,
   "results": [
-    {"name": "pdf", "description": "...", "score": 135, "invoke": "Skill: pdf"},
-    {"name": "canvas-design", "description": "...", "score": 30, "invoke": "Skill: canvas-design"}
+    {"name": "pdf", "type": "skill", "score": 135, "invoke": "Skill: pdf"},
+    {"name": "setup-community-health", "type": "command", "score": 30, "invoke": "/setup-community-health"}
   ]
 }
 ```
 
-## List All Skills
+## List All
 
 ```bash
 python ~/.claude/skills/skill-apropos/scripts/search_skills.py --list
+python ~/.claude/skills/skill-apropos/scripts/search_skills.py --list --type command
 ```
 
 ## Workflow
 
-1. Run `search_skills.py` with user's task as query
-2. Review results (sorted by relevance score)
-3. If match found: invoke using `Skill: <name>`
+1. Run search with user's task as query
+2. Review results (sorted by relevance)
+3. Invoke using the `invoke` field:
+   - Skills: `Skill: <name>`
+   - Commands: `/<name>`
 4. If no match: help with built-in capabilities
-
-## When to Use
-
-- User asks "what skill should I use for X?"
-- User asks "is there a skill that can..."
-- User asks "find me a skill for..."
-- Unsure which skill fits the task

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Search installed skills by keyword to find the right one for a task.
+Search installed artifacts (skills, commands, etc.) by keyword.
 
 Usage:
-    python search_skills.py <query>     # Search skills
-    python search_skills.py --list      # List all skills
-    python search_skills.py --rebuild   # Force rebuild index
+    python search_skills.py <query>          # Search all artifacts
+    python search_skills.py --list           # List all artifacts
+    python search_skills.py --type skill     # Filter by type
+    python search_skills.py --rebuild        # Force rebuild index
 """
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
@@ -27,43 +27,33 @@ STOPWORDS = {
 }
 
 
-def get_skills_dirs() -> list[Path]:
-    """Get all skill directories to scan."""
-    dirs = []
+def get_agent_dir() -> Path:
+    return Path.home() / ".claude"
 
-    # User skills: ~/.claude/skills
-    user_skills = Path.home() / ".claude" / "skills"
-    if user_skills.exists():
-        dirs.append(user_skills)
 
-    # Project skills: .claude/skills (from cwd up to git root)
+def get_project_agent_dir() -> Optional[Path]:
     cwd = Path.cwd()
     for parent in [cwd] + list(cwd.parents):
-        project_skills = parent / ".claude" / "skills"
-        if project_skills.exists() and project_skills not in dirs:
-            dirs.append(project_skills)
-            break
+        project_dir = parent / ".claude"
+        if project_dir.exists() and project_dir != get_agent_dir():
+            return project_dir
         if (parent / ".git").exists():
             break
-
-    return dirs
+    return None
 
 
 def get_index_path() -> Path:
-    return Path.home() / ".claude" / "skills" / ".apropos.json"
+    return get_agent_dir() / ".apropos.json"
 
 
-def parse_frontmatter(skill_md: Path) -> Optional[dict]:
-    """Parse YAML frontmatter from SKILL.md."""
+def parse_skill_frontmatter(skill_md: Path) -> Optional[dict]:
     try:
         content = skill_md.read_text()
         if not content.startswith("---"):
             return None
-
         end = content.find("---", 3)
         if end == -1:
             return None
-
         yaml_content = content[3:end].strip()
         result = {}
         for line in yaml_content.split("\n"):
@@ -73,17 +63,33 @@ def parse_frontmatter(skill_md: Path) -> Optional[dict]:
                 value = value.strip().strip('"').strip("'")
                 if key in ("name", "description"):
                     result[key] = value
-
         return result if "name" in result else None
     except Exception:
         return None
 
 
+def parse_command(cmd_path: Path) -> Optional[dict]:
+    try:
+        content = cmd_path.read_text()
+        lines = content.split("\n")
+        name = cmd_path.stem
+        description = ""
+        for i, line in enumerate(lines):
+            if line.startswith("# "):
+                for j in range(i + 1, min(i + 10, len(lines))):
+                    para = lines[j].strip()
+                    if para and not para.startswith("#") and not para.startswith("```"):
+                        description = para
+                        break
+                break
+        return {"name": name, "description": description}
+    except Exception:
+        return None
+
+
 def extract_keywords(description: str) -> list[str]:
-    """Extract searchable keywords from description."""
     normalized = re.sub(r"[^a-zA-Z0-9\s]", " ", description.lower())
     words = normalized.split()
-
     seen = set()
     keywords = []
     for word in words:
@@ -91,46 +97,73 @@ def extract_keywords(description: str) -> list[str]:
             continue
         seen.add(word)
         keywords.append(word)
-
     return keywords
 
 
-def scan_skills(skills_dirs: list[Path]) -> list[dict]:
-    """Scan directories and extract skill metadata."""
+def scan_skills(agent_dir: Path) -> list[dict]:
     skills = []
-    seen_names = set()
-
-    for skills_dir in skills_dirs:
-        if not skills_dir.exists():
+    skills_dir = agent_dir / "skills"
+    if not skills_dir.exists():
+        return skills
+    for entry in skills_dir.iterdir():
+        if not entry.is_dir() or entry.name.startswith("."):
             continue
-
-        for entry in skills_dir.iterdir():
-            if not entry.is_dir() or entry.name.startswith("."):
-                continue
-
-            skill_md = entry / "SKILL.md"
-            if not skill_md.exists():
-                continue
-
-            fm = parse_frontmatter(skill_md)
-            if not fm:
-                continue
-
-            name = fm.get("name", entry.name)
-            if name in seen_names:
-                continue
-            seen_names.add(name)
-
-            description = fm.get("description", "")
-            skills.append({
-                "name": name,
-                "path": str(entry),
-                "description": description,
-                "keywords": extract_keywords(description),
-                "mod_time": int(skill_md.stat().st_mtime),
-            })
-
+        skill_md = entry / "SKILL.md"
+        if not skill_md.exists():
+            continue
+        fm = parse_skill_frontmatter(skill_md)
+        if not fm:
+            continue
+        skills.append({
+            "name": fm.get("name", entry.name),
+            "type": "skill",
+            "path": str(entry),
+            "description": fm.get("description", ""),
+            "keywords": extract_keywords(fm.get("description", "")),
+            "mod_time": int(skill_md.stat().st_mtime),
+        })
     return skills
+
+
+def scan_commands(agent_dir: Path) -> list[dict]:
+    commands = []
+    commands_dir = agent_dir / "commands"
+    if not commands_dir.exists():
+        return commands
+    for entry in commands_dir.iterdir():
+        if not entry.is_file() or not entry.name.endswith(".md") or entry.name.startswith("."):
+            continue
+        parsed = parse_command(entry)
+        if not parsed:
+            continue
+        commands.append({
+            "name": parsed["name"],
+            "type": "command",
+            "path": str(entry),
+            "description": parsed["description"],
+            "keywords": extract_keywords(parsed["description"]),
+            "mod_time": int(entry.stat().st_mtime),
+        })
+    return commands
+
+
+def scan_all_artifacts(agent_dirs: list[Path]) -> list[dict]:
+    artifacts = []
+    seen = set()
+    for agent_dir in agent_dirs:
+        if not agent_dir.exists():
+            continue
+        for skill in scan_skills(agent_dir):
+            key = (skill["name"], skill["type"])
+            if key not in seen:
+                seen.add(key)
+                artifacts.append(skill)
+        for cmd in scan_commands(agent_dir):
+            key = (cmd["name"], cmd["type"])
+            if key not in seen:
+                seen.add(key)
+                artifacts.append(cmd)
+    return artifacts
 
 
 def load_index() -> Optional[dict]:
@@ -149,50 +182,56 @@ def save_index(index: dict) -> None:
     index_path.write_text(json.dumps(index, indent=2))
 
 
-def is_stale(index: dict, skills_dirs: list[Path]) -> bool:
-    if not index or "skills" not in index:
+def is_stale(index: dict, agent_dirs: list[Path]) -> bool:
+    if not index or "artifacts" not in index:
         return True
-
-    indexed = {s["path"]: s["mod_time"] for s in index["skills"]}
-
-    for skills_dir in skills_dirs:
-        if not skills_dir.exists():
+    indexed = {a["path"]: a["mod_time"] for a in index["artifacts"]}
+    for agent_dir in agent_dirs:
+        if not agent_dir.exists():
             continue
-        for entry in skills_dir.iterdir():
-            if not entry.is_dir() or entry.name.startswith("."):
-                continue
-            skill_md = entry / "SKILL.md"
-            if not skill_md.exists():
-                continue
-            path = str(entry)
-            mod_time = int(skill_md.stat().st_mtime)
-            if path not in indexed or indexed[path] != mod_time:
-                return True
-            del indexed[path]
-
+        skills_dir = agent_dir / "skills"
+        if skills_dir.exists():
+            for entry in skills_dir.iterdir():
+                if not entry.is_dir() or entry.name.startswith("."):
+                    continue
+                skill_md = entry / "SKILL.md"
+                if not skill_md.exists():
+                    continue
+                path = str(entry)
+                if path not in indexed or indexed[path] != int(skill_md.stat().st_mtime):
+                    return True
+                del indexed[path]
+        commands_dir = agent_dir / "commands"
+        if commands_dir.exists():
+            for entry in commands_dir.iterdir():
+                if not entry.is_file() or not entry.name.endswith(".md"):
+                    continue
+                path = str(entry)
+                if path not in indexed or indexed[path] != int(entry.stat().st_mtime):
+                    return True
+                if path in indexed:
+                    del indexed[path]
     return len(indexed) > 0
 
 
-def build_index(skills_dirs: list[Path], force: bool = False) -> dict:
+def build_index(agent_dirs: list[Path], force: bool = False) -> dict:
     if not force:
         index = load_index()
-        if index and not is_stale(index, skills_dirs):
+        if index and not is_stale(index, agent_dirs):
             return index
-
-    skills = scan_skills(skills_dirs)
+    artifacts = scan_all_artifacts(agent_dirs)
     index = {
         "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "skills": skills,
+        "artifacts": artifacts,
     }
     save_index(index)
     return index
 
 
-def score_match(skill: dict, query_words: list[str]) -> int:
+def score_match(artifact: dict, query_words: list[str]) -> int:
     score = 0
-    name_lower = skill["name"].lower()
-    desc_lower = skill["description"].lower()
-
+    name_lower = artifact["name"].lower()
+    desc_lower = artifact["description"].lower()
     for qw in query_words:
         if name_lower == qw:
             score += 100
@@ -200,54 +239,62 @@ def score_match(skill: dict, query_words: list[str]) -> int:
             score += 50
         if qw in desc_lower:
             score += 10
-        for kw in skill.get("keywords", []):
+        for kw in artifact.get("keywords", []):
             if kw == qw:
                 score += 20
             elif qw in kw:
                 score += 5
-
     return score
 
 
-def search(index: dict, query: str) -> list[dict]:
-    if not index or not index.get("skills"):
+def search(index: dict, query: str, type_filter: Optional[str] = None) -> list[dict]:
+    if not index or not index.get("artifacts"):
         return []
-
     query_words = query.lower().split()
     results = []
-
-    for skill in index["skills"]:
-        score = score_match(skill, query_words)
+    for artifact in index["artifacts"]:
+        if type_filter and artifact["type"] != type_filter:
+            continue
+        score = score_match(artifact, query_words)
         if score > 0:
+            invoke = f"Skill: {artifact['name']}" if artifact["type"] == "skill" else f"/{artifact['name']}"
             results.append({
-                "name": skill["name"],
-                "description": skill["description"],
+                "name": artifact["name"],
+                "type": artifact["type"],
+                "description": artifact["description"],
                 "score": score,
-                "invoke": f"Skill: {skill['name']}",
+                "invoke": invoke,
             })
-
     results.sort(key=lambda x: x["score"], reverse=True)
     return results
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Find the right skill for a task")
+    parser = argparse.ArgumentParser(description="Find artifacts (skills, commands) by keyword")
     parser.add_argument("query", nargs="*", help="Search query")
-    parser.add_argument("--list", action="store_true", help="List all skills")
+    parser.add_argument("--list", action="store_true", help="List all artifacts")
+    parser.add_argument("--type", choices=["skill", "command"], help="Filter by type")
     parser.add_argument("--rebuild", action="store_true", help="Force rebuild index")
 
     args = parser.parse_args()
-    skills_dirs = get_skills_dirs()
+    agent_dirs = [get_agent_dir()]
+    project_dir = get_project_agent_dir()
+    if project_dir:
+        agent_dirs.append(project_dir)
 
     if args.rebuild:
-        index = build_index(skills_dirs, force=True)
-        print(json.dumps({"action": "rebuild", "count": len(index.get("skills", []))}, indent=2))
+        index = build_index(agent_dirs, force=True)
+        print(json.dumps({"action": "rebuild", "count": len(index.get("artifacts", []))}, indent=2))
         return
 
     if args.list:
-        index = build_index(skills_dirs)
-        skills = [{"name": s["name"], "description": s["description"]} for s in index.get("skills", [])]
-        print(json.dumps({"action": "list", "count": len(skills), "skills": skills}, indent=2))
+        index = build_index(agent_dirs)
+        artifacts = [
+            {"name": a["name"], "type": a["type"], "description": a["description"]}
+            for a in index.get("artifacts", [])
+            if not args.type or a["type"] == args.type
+        ]
+        print(json.dumps({"action": "list", "count": len(artifacts), "artifacts": artifacts}, indent=2))
         return
 
     if not args.query:
@@ -255,9 +302,8 @@ def main():
         sys.exit(1)
 
     query = " ".join(args.query)
-    index = build_index(skills_dirs)
-    results = search(index, query)
-
+    index = build_index(agent_dirs)
+    results = search(index, query, args.type)
     print(json.dumps({"query": query, "count": len(results), "results": results}, indent=2))
 
 

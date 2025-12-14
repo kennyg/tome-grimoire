@@ -1,0 +1,13 @@
+name: tome-grimoire
+description: A collection of skills, commands, and prompts for AI agents
+author: kennyg
+version: 0.1.0
+license: MIT
+source: github.com/kennyg/tome-grimoire
+homepage: https://github.com/kennyg/tome-grimoire
+tags:
+  - skills
+  - commands
+  - prompts
+  - claude-code
+  - ai-agents

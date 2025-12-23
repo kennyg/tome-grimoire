@@ -1,0 +1,81 @@
+[tools]
+node = "22"
+bun = "latest"
+
+[env]
+PATH = "./node_modules/.bin:{{env.PATH}}"
+
+[tasks.dev]
+description = "Start Slidev dev server"
+run = """
+if [ -z "$1" ]; then
+  echo "Usage: mise run dev <slides-file>"
+  echo "Example: mise run dev slides/intro.slides.md"
+  exit 1
+fi
+bunx slidev "$1"
+"""
+
+[tasks.build]
+description = "Build all slide decks and landing page"
+run = "bun run scripts/build-all.ts"
+
+[tasks.preview]
+description = "Preview built slides"
+run = "bunx serve dist"
+
+[tasks.new]
+description = "Create a new slide deck"
+run = """
+if [ -z "$1" ]; then
+  echo "Usage: mise run new <deck-name>"
+  exit 1
+fi
+mkdir -p slides
+cat > "slides/$1.slides.md" << 'EOF'
+---
+theme: default
+title: $1
+info: |
+  Add description here
+class: text-center
+transition: slide-left
+mdc: true
+---
+
+# $1
+
+Presentation subtitle
+
+---
+
+# Agenda
+
+<v-clicks>
+
+- Topic one
+- Topic two
+- Topic three
+
+</v-clicks>
+
+---
+
+# First Slide
+
+Your content here
+
+<!--
+Speaker notes go here
+-->
+
+---
+layout: center
+---
+
+# Thank You
+
+Questions?
+EOF
+echo "Created slides/$1.slides.md"
+"""

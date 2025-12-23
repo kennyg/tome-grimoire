@@ -1,4 +1,6 @@
 [tools]
+hk = "latest"
+pkl = "latest"
 python = "3.12"
 
 [tasks.generate-readme]

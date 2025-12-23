@@ -1,0 +1,12 @@
+amends "package://github.com/jdx/hk/releases/download/v1.28.0/hk@1.28.0#/Config.pkl"
+
+hooks {
+    ["pre-commit"] {
+        steps {
+            ["generate-readme"] {
+                glob = List("skills/**/SKILL.md", "commands/*.md")
+                check = "python scripts/generate-readme.py"
+            }
+        }
+    }
+}

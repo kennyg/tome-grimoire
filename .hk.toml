@@ -1,0 +1,7 @@
+[pre-commit.generate-readme]
+run = "python scripts/generate-readme.py"
+glob = [
+    "skills/**/SKILL.md",
+    "commands/*.md",
+    "README.md",
+]

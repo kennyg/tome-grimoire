@@ -19,13 +19,14 @@ tome learn kennyg/tome-grimoire --command setup-community-health
 
 | Name | Description |
 |------|-------------|
-| [skill-apropos](skills/skill-apropos/) | Find the right skill for a task by searching installed skills |
+| [skill-apropos](skills/skill-apropos/) | Find the right artifact (skill, command, etc.) for a task. Use when user asks... |
+| [slidev](skills/slidev/) | Create and edit markdown-based presentations using Slidev framework. Use when... |
 
 ### Commands
 
 | Name | Description |
 |------|-------------|
-| [setup-community-health](commands/setup-community-health.md) | Set up GitHub community health files (CODE_OF_CONDUCT, CONTRIBUTING, etc.) |
+| [setup-community-health](commands/setup-community-health.md) | Setup Community Health Files |
 
 ### Prompts
 

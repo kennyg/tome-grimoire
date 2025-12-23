@@ -1,0 +1,6 @@
+[tools]
+python = "3.12"
+
+[tasks.generate-readme]
+description = "Generate README tables from skills and commands"
+run = "python scripts/generate-readme.py"

@@ -116,7 +116,7 @@ def update_readme(skills: list[dict], commands: list[dict]) -> bool:
     # Update skills section
     skills_table = generate_table(skills, "Skills")
     content = re.sub(
-        r"(### Skills\n\n).*?(?=\n\n### |\n\n## |\Z)",
+        r"(## Skills\n\n).*?(?=\n\n## |\Z)",
         rf"\1{skills_table}",
         content,
         flags=re.DOTALL,
@@ -125,7 +125,7 @@ def update_readme(skills: list[dict], commands: list[dict]) -> bool:
     # Update commands section
     commands_table = generate_table(commands, "Commands")
     content = re.sub(
-        r"(### Commands\n\n).*?(?=\n\n### |\n\n## |\Z)",
+        r"(## Commands\n\n).*?(?=\n\n## |\Z)",
         rf"\1{commands_table}",
         content,
         flags=re.DOTALL,

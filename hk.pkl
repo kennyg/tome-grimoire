@@ -5,7 +5,7 @@ hooks {
         steps {
             ["generate-readme"] {
                 glob = List("skills/**/SKILL.md", "commands/*.md")
-                check = "python scripts/generate-readme.py"
+                check = "mise run generate-readme"
             }
         }
     }

@@ -89,6 +89,27 @@ Contributions welcome! Feel free to:
 - **Improve existing ones** — Better docs, bug fixes, enhancements
 - **Report issues** — Found a problem? Open an issue
 
+### Development Setup
+
+This project uses [mise](https://mise.jdx.dev) for tool management and [hk](https://hk.jdx.dev) for git hooks.
+
+```bash
+# Install mise (if you don't have it)
+curl https://mise.run | sh
+
+# Trust and install tools
+mise trust
+mise install
+
+# Install git hooks
+mise exec -- hk install
+
+# Fix the hook to use mise (required since hk is managed by mise)
+sed -i '' 's/exec hk/exec mise exec -- hk/' .git/hooks/pre-commit
+```
+
+The pre-commit hook automatically regenerates the README tables when you modify skill or command files.
+
 ## License
 
 MIT

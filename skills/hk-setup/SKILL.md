@@ -39,6 +39,7 @@ Look for these files to identify the project:
 | `package.json`, `*.ts`, `*.tsx` | JavaScript/TypeScript | eslint, prettier |
 | `go.mod`, `*.go` | Go | gofmt, golangci-lint |
 | `Cargo.toml`, `*.rs` | Rust | rustfmt, clippy |
+| `Package.swift`, `*.swift` | Swift | swiftlint, swiftformat |
 | `*.pkl` | Pkl configs | pkl eval |
 
 ### 2. Check Available Tools
@@ -147,6 +148,27 @@ local linters = new Mapping<String, Step> {
 local linters = new Mapping<String, Step> {
     ["rustfmt"] = Builtins.rustfmt
     ["clippy"] = Builtins.clippy
+    ["pkl"] {
+        glob = "*.pkl"
+        check = "pkl eval {{files}} >/dev/null"
+    }
+}
+```
+
+### Swift (swiftlint + swiftformat)
+
+```pkl
+local linters = new Mapping<String, Step> {
+    ["swiftlint"] {
+        glob = "**/*.swift"
+        check = "swiftlint lint --strict {{files}}"
+        fix = "swiftlint lint --fix {{files}}"
+    }
+    ["swiftformat"] {
+        glob = "**/*.swift"
+        check = "swiftformat --lint {{files}}"
+        fix = "swiftformat {{files}}"
+    }
     ["pkl"] {
         glob = "*.pkl"
         check = "pkl eval {{files}} >/dev/null"

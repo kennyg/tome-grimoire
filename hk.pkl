@@ -4,7 +4,6 @@ hooks {
     ["pre-commit"] {
         steps {
             ["generate-readme"] {
-                glob = List("skills/**/SKILL.md", "commands/*.md")
                 check = "mise run generate-readme"
             }
         }

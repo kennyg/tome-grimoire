@@ -52,9 +52,7 @@ tome learn kennyg/tome-grimoire --command setup-community-health
 
 ## Commands
 
-| Name | Description |
-|------|-------------|
-| [setup-community-health](commands/setup-community-health.md) | Setup Community Health Files |
+*Coming soon*
 
 ## Prompts
 

@@ -48,6 +48,7 @@ tome learn kennyg/tome-grimoire --command setup-community-health
 | Name | Description |
 |------|-------------|
 | [hk-setup](skills/hk-setup/) | Set up hk (git hook manager) with pre-commit hooks for any project. Detects... |
+| [jenkinsfile-to-gha](skills/jenkinsfile-to-gha/) | Convert Jenkins pipelines (Jenkinsfiles) to GitHub Actions workflows. Use when... |
 | [slidev](skills/slidev/) | Create and edit markdown-based presentations using Slidev framework. Use when... |
 
 ## Commands

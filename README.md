@@ -47,6 +47,7 @@ tome learn kennyg/tome-grimoire --command setup-community-health
 
 | Name | Description |
 |------|-------------|
+| [hk-setup](skills/hk-setup/) | Set up hk (git hook manager) with pre-commit hooks for any project. Detects... |
 | [skill-apropos](skills/skill-apropos/) | Find the right artifact (skill, command, etc.) for a task. Use when user asks... |
 | [slidev](skills/slidev/) | Create and edit markdown-based presentations using Slidev framework. Use when... |
 

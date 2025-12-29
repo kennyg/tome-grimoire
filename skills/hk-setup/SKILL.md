@@ -193,27 +193,21 @@ local linters = new Mapping<String, Step> {
 
 ## Universal Linters
 
-These work for any project and can be added to any template:
+These work for any project. Add them directly to your linters mapping:
 
 ```pkl
-local universal = new Mapping<String, Step> {
+local linters = new Mapping<String, Step> {
+    // Language-specific linters...
+    ["ruff"] = Builtins.ruff
+
+    // Universal linters (add to any project)
     ["typos"] = Builtins.typos                             // Spell checker
     ["trailing-whitespace"] = Builtins.trailing_whitespace // Remove trailing spaces
     ["newlines"] = Builtins.newlines                       // Ensure final newline
 }
 ```
 
-Add to your linters mapping or merge into hooks:
-
-```pkl
-hooks {
-    ["pre-commit"] {
-        fix = true
-        stash = "git"
-        steps = linters + universal
-    }
-}
-```
+Note: Pkl Mappings don't support `+` concatenation. Define all linters in a single mapping.
 
 Other useful universal builtins:
 - `check_merge_conflict` - Prevent committing merge conflict markers

@@ -34,6 +34,8 @@ Run `hk builtins` to see all available builtins for your hk version.
 | `ox_lint` | oxlint | Fast linter (Rust-based) |
 | `standard_js` | standard | JavaScript Standard Style |
 
+**Note:** `oxfmt` (oxc formatter) is not a builtin yet - use custom step. See SKILL.md.
+
 **Recommended:** `biome` (new projects) or `eslint` + `prettier` (existing)
 
 ## Go

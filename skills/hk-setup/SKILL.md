@@ -137,6 +137,24 @@ local linters = new Mapping<String, Step> {
 }
 ```
 
+### JavaScript/TypeScript (oxc)
+
+Oxlint + oxfmt from the [oxc project](https://oxc.rs). Oxfmt is alpha but very fast:
+
+```pkl
+local linters = new Mapping<String, Step> {
+    ["oxlint"] = Builtins.ox_lint
+    ["oxfmt"] {
+        glob = "**/*.{ts,tsx,js,jsx,json,md}"
+        check = "oxfmt --check {{files}}"
+        fix = "oxfmt {{files}}"
+    }
+    ["pkl"] = Builtins.pkl
+}
+```
+
+Install: `npm install -g oxfmt`
+
 ### Go
 
 ```pkl

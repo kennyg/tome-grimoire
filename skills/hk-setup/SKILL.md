@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires hk to be installed (brew install hk or mise use hk). Works with Claude Code and similar agents.
 metadata:
   author: kenny
-  version: "1.0"
+  version: "1.1"
 ---
 
 # hk Setup
@@ -33,28 +33,32 @@ mise use -g hk
 
 Look for these files to identify the project:
 
-| File | Project Type | Linters |
-|------|--------------|---------|
-| `pyproject.toml`, `setup.py`, `*.py` | Python | ruff, ruff-format, ty/mypy |
-| `package.json`, `*.ts`, `*.tsx` | JavaScript/TypeScript | eslint, prettier |
-| `go.mod`, `*.go` | Go | gofmt, golangci-lint |
-| `Cargo.toml`, `*.rs` | Rust | rustfmt, clippy |
+| File | Project Type | Recommended Linters |
+|------|--------------|---------------------|
+| `pyproject.toml`, `*.py` | Python | ruff, ruff_format |
+| `package.json`, `*.ts` | JavaScript/TypeScript | biome (or eslint + prettier) |
+| `go.mod`, `*.go` | Go | go_fmt, golangci_lint |
+| `Cargo.toml`, `*.rs` | Rust | rustfmt, cargo_clippy |
 | `Package.swift`, `*.swift` | Swift | swiftlint, swiftformat |
-| `*.pkl` | Pkl configs | pkl eval |
+| `*.sh`, `*.bash` | Shell | shellcheck, shfmt |
+| `Dockerfile` | Docker | hadolint |
+| `*.pkl` | Pkl configs | pkl |
 
 ### 2. Check Available Tools
 
 ```bash
-# List built-in linters
-hk builtins
-
-# Common builtins:
-# Python: ruff, ruff_format, mypy, black, isort
-# JS/TS: eslint, prettier, biome
-# Go: gofmt, goimports, golangci_lint
-# Rust: rustfmt, clippy
-# General: prettier, pkl
+hk builtins  # List all built-in linters
 ```
+
+See [references/builtins.md](references/builtins.md) for full catalog. Key builtins:
+
+| Language | Recommended Builtins |
+|----------|---------------------|
+| Python | `ruff`, `ruff_format` |
+| JS/TS | `biome` or `eslint` + `prettier` |
+| Go | `go_fmt`, `go_imports`, `golangci_lint` |
+| Rust | `rustfmt`, `cargo_clippy` |
+| Shell | `shellcheck`, `shfmt` |
 
 ### 3. Generate hk.pkl
 
@@ -108,10 +112,7 @@ local linters = new Mapping<String, Step> {
         glob = "**/*.py"
         check = "ty check"
     }
-    ["pkl"] {
-        glob = "*.pkl"
-        check = "pkl eval {{files}} >/dev/null"
-    }
+    ["pkl"] = Builtins.pkl
 }
 ```
 
@@ -121,10 +122,18 @@ local linters = new Mapping<String, Step> {
 local linters = new Mapping<String, Step> {
     ["eslint"] = Builtins.eslint
     ["prettier"] = Builtins.prettier
-    ["pkl"] {
-        glob = "*.pkl"
-        check = "pkl eval {{files}} >/dev/null"
-    }
+    ["pkl"] = Builtins.pkl
+}
+```
+
+### JavaScript/TypeScript (biome)
+
+Biome is a fast all-in-one linter+formatter. Use instead of eslint+prettier for new projects:
+
+```pkl
+local linters = new Mapping<String, Step> {
+    ["biome"] = Builtins.biome
+    ["pkl"] = Builtins.pkl
 }
 ```
 
@@ -135,10 +144,7 @@ local linters = new Mapping<String, Step> {
     ["gofmt"] = Builtins.gofmt
     ["goimports"] = Builtins.goimports
     ["golangci-lint"] = Builtins.golangci_lint
-    ["pkl"] {
-        glob = "*.pkl"
-        check = "pkl eval {{files}} >/dev/null"
-    }
+    ["pkl"] = Builtins.pkl
 }
 ```
 
@@ -148,10 +154,7 @@ local linters = new Mapping<String, Step> {
 local linters = new Mapping<String, Step> {
     ["rustfmt"] = Builtins.rustfmt
     ["clippy"] = Builtins.clippy
-    ["pkl"] {
-        glob = "*.pkl"
-        check = "pkl eval {{files}} >/dev/null"
-    }
+    ["pkl"] = Builtins.pkl
 }
 ```
 
@@ -159,22 +162,63 @@ local linters = new Mapping<String, Step> {
 
 ```pkl
 local linters = new Mapping<String, Step> {
-    ["swiftlint"] {
-        glob = "**/*.swift"
-        check = "swiftlint lint --strict {{files}}"
-        fix = "swiftlint lint --fix {{files}}"
-    }
+    ["swiftlint"] = Builtins.swiftlint
     ["swiftformat"] {
         glob = "**/*.swift"
         check = "swiftformat --lint {{files}}"
         fix = "swiftformat {{files}}"
     }
-    ["pkl"] {
-        glob = "*.pkl"
-        check = "pkl eval {{files}} >/dev/null"
+    ["pkl"] = Builtins.pkl
+}
+```
+
+### Shell
+
+```pkl
+local linters = new Mapping<String, Step> {
+    ["shellcheck"] = Builtins.shellcheck
+    ["shfmt"] = Builtins.shfmt
+    ["pkl"] = Builtins.pkl
+}
+```
+
+### Docker
+
+```pkl
+local linters = new Mapping<String, Step> {
+    ["hadolint"] = Builtins.hadolint
+    ["pkl"] = Builtins.pkl
+}
+```
+
+## Universal Linters
+
+These work for any project and can be added to any template:
+
+```pkl
+local universal = new Mapping<String, Step> {
+    ["typos"] = Builtins.typos                             // Spell checker
+    ["trailing-whitespace"] = Builtins.trailing_whitespace // Remove trailing spaces
+    ["newlines"] = Builtins.newlines                       // Ensure final newline
+}
+```
+
+Add to your linters mapping or merge into hooks:
+
+```pkl
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters + universal
     }
 }
 ```
+
+Other useful universal builtins:
+- `check_merge_conflict` - Prevent committing merge conflict markers
+- `detect_private_key` - Prevent committing private keys
+- `check_added_large_files` - Warn about large files
 
 ## Custom Steps
 
